@@ -3,17 +3,20 @@
 # Usage:
 #   ./tool.sh enumsmb scope.txt
 #   ./tool.sh extractip extractable.txt
+#   ./tool.sh gettable smb_open_ips.txt -u 'user' -p 'pass'
 
 set -e
 
 COMMAND=$1
 INPUT_FILE=$2
+shift 2
 
 if [ -z "$COMMAND" ] || [ -z "$INPUT_FILE" ]; then
     echo "Commands:"
     echo ""
-    echo "  enumsmb - enumerates smb ports"
-    echo "  extractip - extracts the ips"
+    echo "  enumsmb    - enumerates smb ports"
+    echo "  extractip  - extracts the IPs from nmap output"
+    echo "  gettable   - lists SMB shares using netexec"
     exit 1
 fi
 
@@ -21,7 +24,7 @@ case "$COMMAND" in
   enumsmb)
     nmap -vv -p 445,139 --open -Pn -iL "$INPUT_FILE" | tee nmap_smb_out
     ;;
-  
+
   extractip)
     if [ ! -f "$INPUT_FILE" ]; then
       echo "Error: File '$INPUT_FILE' not found."
@@ -29,12 +32,42 @@ case "$COMMAND" in
     fi
     grep "Discovered open port" "$INPUT_FILE" | awk '{print $6}' | tee smb_open_ips
     ;;
-  
+
+  gettable)
+    # Parse username and password from arguments
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        -u|--user)
+          user="$2"
+          shift 2
+          ;;
+        -p|--pass)
+          pass="$2"
+          shift 2
+          ;;
+        *)
+          echo "Unknown option: $1"
+          exit 4
+          ;;
+      esac
+    done
+
+    if [ -z "$user" ] || [ -z "$pass" ]; then
+      echo "Error: Username and password must be provided for gettable."
+      echo "Usage: $0 gettable smb_open_ips.txt -u 'user' -p 'pass'"
+      exit 5
+    fi
+
+    netexec smb "$INPUT_FILE" -u "$user" -p "$pass" --shares | tee netexec_out
+    grep -E "READ|WRITE" netexec_out
+    ;;
+
   *)
     echo "Unknown command: $COMMAND"
     echo "Usage:"
     echo "  $0 enumsmb scope.txt"
-    echo "  $0 extractip extractable.txt"
+    echo "  $0 extractip nmap_output.txt"
+    echo "  $0 gettable smb_open_ips.txt -u 'user' -p 'pass'"
     exit 3
     ;;
 esac
