@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Usage:
+#   ./tool.sh enumsmb scope.txt
+#   ./tool.sh extractip extractable.txt
+
+set -e
+
+COMMAND=$1
+INPUT_FILE=$2
+
+if [ -z "$COMMAND" ] || [ -z "$INPUT_FILE" ]; then
+    echo "Commands:"
+    echo ""
+    echo "  enumsmb - enumerates smb ports"
+    echo "  extractip - extracts the ips"
+    exit 1
+fi
+
+case "$COMMAND" in
+  enumsmb)
+    nmap -vv -p 445,139 --open -Pn -iL "$INPUT_FILE" | tee nmap_smb_out
+    ;;
+  
+  extractip)
+    if [ ! -f "$INPUT_FILE" ]; then
+      echo "Error: File '$INPUT_FILE' not found."
+      exit 2
+    fi
+    grep "Discovered open port" "$INPUT_FILE" | awk '{print $6}' | tee smb_open_ips
+    ;;
+  
+  *)
+    echo "Unknown command: $COMMAND"
+    echo "Usage:"
+    echo "  $0 enumsmb scope.txt"
+    echo "  $0 extractip extractable.txt"
+    exit 3
+    ;;
+esac
