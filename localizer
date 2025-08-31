@@ -59,7 +59,7 @@ case "$COMMAND" in
     fi
 
     netexec smb "$INPUT_FILE" -u "$user" -p "$pass" --shares | tee netexec_out
-    grep -E "READ|WRITE" netexec_out
+    grep -E "READ|WRITE" netexec_out | tee table
     ;;
 
   *)
