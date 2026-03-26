@@ -30,7 +30,7 @@ case "$COMMAND" in
       echo "Error: File '$INPUT_FILE' not found."
       exit 2
     fi
-    grep "Discovered open port" "$INPUT_FILE" | awk '{print $6}' | tee smb_open_ips
+    grep "Discovered open port" "$INPUT_FILE" | awk '{print $6}' | anew smb_open_ips
     ;;
 
   gettable)
